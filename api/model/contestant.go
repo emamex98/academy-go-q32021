@@ -9,3 +9,8 @@ type Contestant struct {
 	CurrentScore int    `json:"Score"`
 	Bio          string `json:"Bio"`
 }
+
+type ContestantInfo struct {
+	Bio   string
+	Score int
+}

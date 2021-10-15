@@ -10,7 +10,13 @@ import (
 	"github.com/emamex98/academy-go-q32021/model"
 )
 
-func ReadCSV(path string) ([][]string, error) {
+type contestantsUseCase struct{}
+
+func CreateCsvUtil() contestantsUseCase {
+	return contestantsUseCase{}
+}
+
+func (c contestantsUseCase) ReadCSV(path string) ([][]string, error) {
 
 	csvf, err := os.Open(path)
 	if err != nil {
@@ -28,7 +34,7 @@ func ReadCSV(path string) ([][]string, error) {
 	return csvLines, nil
 }
 
-func WriteChangesToCSV(path string, records []model.Contestant) error {
+func (c contestantsUseCase) WriteCSV(path string, records []model.Contestant) error {
 
 	file, err := os.Create(path)
 	defer file.Close()

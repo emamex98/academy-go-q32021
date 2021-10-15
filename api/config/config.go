@@ -11,8 +11,13 @@ type server struct {
 	Address string `json:"address"`
 }
 
+type api struct {
+	Host string `json:"host"`
+}
+
 type config struct {
 	Server server `json:"server"`
+	API    api    `json:"api"`
 }
 
 func ReadConfig(path string) (config, error) {
