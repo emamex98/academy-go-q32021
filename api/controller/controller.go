@@ -9,16 +9,22 @@ import (
 )
 
 type controllers struct {
-	UseCase usecase
+	UseCase    usecase
+	ConUseCase conusecase
 }
 
 type usecase interface {
 	FetchContestans() ([]model.Contestant, int)
 }
 
-func CreateControllers(uc usecase) controllers {
+type conusecase interface {
+	FetchContestansConcurrently(class string, max int, ixw int) ([]model.Contestant, int)
+}
+
+func CreateControllers(uc usecase, cuc conusecase) controllers {
 	return controllers{
-		UseCase: uc,
+		UseCase:    uc,
+		ConUseCase: cuc,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -66,4 +67,34 @@ func (c controllers) GetSingleContestant(w http.ResponseWriter, r *http.Request)
 	}
 
 	resp.JSON(w, http.StatusNotFound, map[string]string{"error": "id not found"})
+}
+
+func (c controllers) GetContestansConcurrently(w http.ResponseWriter, r *http.Request) {
+
+	resp := render.New()
+	query := r.URL.Query()
+
+	class := fmt.Sprintf("%v", query["type"])
+	maxStr := query["items"]
+	ixwStr := query["items_per_workers"]
+
+	max := 1
+	ixw := 1
+
+	fmt.Println(class, reflect.TypeOf(maxStr), ixwStr)
+
+	contestants, errCode := c.ConUseCase.FetchContestansConcurrently(class, max, ixw)
+	if errCode != 0 {
+		switch errCode {
+		case 400:
+			returnError(resp, w, errCode, errors.New("bad request"))
+			return
+		default:
+			returnError(resp, w, errCode, errors.New("something happened while processing your request, try again"))
+			return
+		}
+	}
+
+	fmt.Println("Endpoint reached: /contestants-concurrent")
+	resp.JSON(w, http.StatusOK, contestants)
 }
