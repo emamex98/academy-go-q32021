@@ -4,8 +4,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
-	"os"
 	"strconv"
 
 	"github.com/emamex98/academy-go-q32021/model"
@@ -16,11 +14,10 @@ type contestantsConcurrentUseCase struct {
 }
 
 type csvCncUtil interface {
-	ReadCSV() ([][]string, error)
-	WriteCSV(records []model.Contestant) error
+	CreateCsvReader() (*csv.Reader, error)
 }
 
-func CreateConcurrentUseCase(csvu csvUtil) contestantsConcurrentUseCase {
+func CreateConcurrentUseCase(csvu csvCncUtil) contestantsConcurrentUseCase {
 	return contestantsConcurrentUseCase{
 		CsvUtil: csvu,
 	}
@@ -32,12 +29,20 @@ func worker(workerId int, jobs <-chan []string, res chan<- model.Contestant) {
 
 		id, err := strconv.Atoi(line[0])
 		if err != nil {
-			fmt.Println("35", err)
+			fmt.Println(err)
+			id = 0
 		}
 
 		age, err := strconv.Atoi(line[3])
 		if err != nil {
-			fmt.Println("40", err)
+			fmt.Println(err)
+			age = 0
+		}
+
+		score, err := strconv.Atoi(line[5])
+		if err != nil {
+			fmt.Println(err)
+			score = 0
 		}
 
 		contestant := model.Contestant{
@@ -46,30 +51,11 @@ func worker(workerId int, jobs <-chan []string, res chan<- model.Contestant) {
 			RealName:     line[2],
 			Age:          age,
 			CurrentCity:  line[4],
-			CurrentScore: 0,
-			Bio:          "pending...",
+			CurrentScore: score,
+			Bio:          line[6],
 		}
 		res <- contestant
 	}
-}
-
-func ReadCsvLineByLine() (*csv.Reader, error) {
-
-	csvf, err := os.Open("./lmd.csv")
-	if err != nil {
-		fmt.Println("60", err)
-		return nil, err
-	}
-
-	reader := csv.NewReader(csvf)
-
-	if err != nil {
-		fmt.Println("67", err)
-		return nil, err
-	}
-
-	defer csvf.Close()
-	return reader, nil
 }
 
 func (uc contestantsConcurrentUseCase) FetchContestansConcurrently(class string, max int, ixw int) ([]model.Contestant, int) {
@@ -86,42 +72,42 @@ func (uc contestantsConcurrentUseCase) FetchContestansConcurrently(class string,
 		go worker(i, jobs, res)
 	}
 
-	csvReader, err := ReadCsvLineByLine()
+	csvReader, err := uc.CsvUtil.CreateCsvReader()
 	if err != nil {
-		fmt.Println("91", err)
-		return nil, -1
+		fmt.Println(err)
+		return nil, 500
 	}
 
 	var Contestants []model.Contestant
 	i := 0
 
 	for {
-		line, err := csvReader.Read()
-		fmt.Println(len(line))
 
-		if err == io.EOF || i == max || len(line) <= 1 {
+		line, err := csvReader.Read()
+		if err == io.EOF || i == max {
 			close(jobs)
 			break
 		}
 
-		if line[0] == "id" {
+		if line[0] == "ID" {
 			continue
 		}
 
 		id, err := strconv.Atoi(line[0])
 		if err != nil {
-			fmt.Println("112", err)
+			fmt.Println(err)
+			return nil, 400
 		}
 
 		switch class {
-		case "odd":
+		case "even":
 			if id%2 == 0 {
 				jobs <- line
 				con := <-res
 				Contestants = append(Contestants, con)
 				i++
 			}
-		case "even":
+		case "odd":
 			if id%2 != 0 {
 				jobs <- line
 				con := <-res
@@ -129,15 +115,9 @@ func (uc contestantsConcurrentUseCase) FetchContestansConcurrently(class string,
 				i++
 			}
 		default:
-			jobs <- line
-			con := <-res
-			Contestants = append(Contestants, con)
-			i++
+			return nil, 400
 		}
 
-		if err != nil {
-			log.Fatal("135", err)
-		}
 	}
 
 	return Contestants, 0

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -74,16 +73,28 @@ func (c controllers) GetContestansConcurrently(w http.ResponseWriter, r *http.Re
 	resp := render.New()
 	query := r.URL.Query()
 
-	class := fmt.Sprintf("%v", query["type"])
+	class := query["type"]
 	maxStr := query["items"]
 	ixwStr := query["items_per_workers"]
 
-	max := 1
-	ixw := 1
+	if len(class) == 0 {
+		returnError(resp, w, http.StatusBadRequest, errors.New("bad request"))
+		return
+	}
 
-	fmt.Println(class, reflect.TypeOf(maxStr), ixwStr)
+	max, err := strconv.Atoi(maxStr[0])
+	if err != nil {
+		returnError(resp, w, http.StatusBadRequest, errors.New("bad request"))
+		return
+	}
 
-	contestants, errCode := c.ConUseCase.FetchContestansConcurrently(class, max, ixw)
+	ixw, err := strconv.Atoi(ixwStr[0])
+	if err != nil {
+		returnError(resp, w, http.StatusBadRequest, errors.New("bad request"))
+		return
+	}
+
+	contestants, errCode := c.ConUseCase.FetchContestansConcurrently(class[0], max, ixw)
 	if errCode != 0 {
 		switch errCode {
 		case 400:

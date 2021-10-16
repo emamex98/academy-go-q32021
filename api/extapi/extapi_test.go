@@ -2,6 +2,7 @@ package extapi
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -10,10 +11,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type testResp struct{}
+type testResp struct {
+	resp map[int]model.ContestantInfo
+	err  error
+}
 
 type mockextapi struct {
 	HttpClient mhttpClient
+}
+
+type mockGetResp struct {
+	resp http.Response
+	err  error
 }
 
 type mhttpClient interface {
@@ -21,31 +30,79 @@ type mhttpClient interface {
 }
 
 func (m mockextapi) Get(url string) (resp *http.Response, err error) {
+	return &tt.resp, tt.err
+}
+
+func generateSampleResponse() (resp *http.Response) {
 	json := `{"100": {"extract": "Guadalupe Fierce is an imaginary drag queen.", "ns": 0, "pageid": 100, "score": 1000, "title": "Guadalupe Fierce"}}`
 	body := ioutil.NopCloser(bytes.NewReader([]byte(json)))
 	return &http.Response{
 		StatusCode: 200,
 		Body:       body,
-	}, nil
+	}
 }
+
+func generateFaultyJsonResp() (resp *http.Response) {
+	json := `{"100": "not what you expect"}`
+	body := ioutil.NopCloser(bytes.NewReader([]byte(json)))
+	return &http.Response{
+		StatusCode: 200,
+		Body:       body,
+	}
+}
+
+func generateExpectValue() map[int]model.ContestantInfo {
+	var con = make(map[int]model.ContestantInfo)
+	con[1000] = model.ContestantInfo{
+		Bio:   "Guadalupe Fierce is an imaginary drag queen.",
+		Score: 1000,
+	}
+	return con
+}
+
+var tt mockGetResp
 
 func TestFetchBiosAndScores(t *testing.T) {
 
 	tCases := []struct {
 		name     string
-		response testResp
-		err      error
+		expect   testResp
+		httpc    *http.Response
 		hasError bool
 	}{
 		{
-			name:     "test 1",
-			response: testResp{},
-			err:      nil,
+			name: "call api and proccess response",
+			expect: testResp{
+				resp: generateExpectValue(),
+				err:  nil,
+			},
+			httpc:    generateSampleResponse(),
 			hasError: false,
+		},
+		{
+			name: "failed api response",
+			expect: testResp{
+				resp: nil,
+				err:  errors.New("error"),
+			},
+			httpc:    generateSampleResponse(),
+			hasError: true,
+		},
+		{
+			name: "failed to unmarshall json",
+			expect: testResp{
+				resp: nil,
+				err:  errors.New("error"),
+			},
+			httpc:    generateFaultyJsonResp(),
+			hasError: true,
 		},
 	}
 
 	for _, tc := range tCases {
+
+		tt.resp = *tc.httpc
+		tt.err = tc.expect.err
 
 		var mcon = make(map[int]model.ContestantInfo)
 		mcon[100] = model.ContestantInfo{
@@ -58,7 +115,7 @@ func TestFetchBiosAndScores(t *testing.T) {
 			contestants, err := s.FetchBiosAndScores()
 
 			if tc.hasError {
-				assert.NotEqual(t, 0, err)
+				assert.Error(t, tc.expect.err, err)
 			} else {
 				assert.EqualValues(t, mcon, contestants)
 			}

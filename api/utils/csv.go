@@ -77,3 +77,15 @@ func (c contestantsUseCase) WriteCSV(records []model.Contestant) error {
 
 	return nil
 }
+
+func (c contestantsUseCase) CreateCsvReader() (*csv.Reader, error) {
+
+	csvf, err := os.Open(c.InputPath)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	reader := csv.NewReader(csvf)
+	return reader, nil
+}
