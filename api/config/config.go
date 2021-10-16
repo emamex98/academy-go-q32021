@@ -15,9 +15,15 @@ type api struct {
 	Host string `json:"host"`
 }
 
+type csv struct {
+	Input  string `json:"in"`
+	Output string `json:"out"`
+}
+
 type config struct {
 	Server server `json:"server"`
 	API    api    `json:"api"`
+	CSV    csv    `json:"csv"`
 }
 
 func ReadConfig(path string) (config, error) {

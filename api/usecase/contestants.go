@@ -10,23 +10,21 @@ import (
 type contestantsUseCase struct {
 	ExtApi  extapi
 	CsvUtil csvUtil
-	Host    string
 }
 
 type extapi interface {
-	FetchBiosAndScores(host string) (map[int]model.ContestantInfo, error)
+	FetchBiosAndScores() (map[int]model.ContestantInfo, error)
 }
 
 type csvUtil interface {
-	ReadCSV(path string) ([][]string, error)
-	WriteCSV(path string, records []model.Contestant) error
+	ReadCSV() ([][]string, error)
+	WriteCSV(records []model.Contestant) error
 }
 
-func CreateUseCase(extApi extapi, csvu csvUtil, host string) contestantsUseCase {
+func CreateUseCase(extApi extapi, csvu csvUtil) contestantsUseCase {
 	return contestantsUseCase{
 		ExtApi:  extApi,
 		CsvUtil: csvu,
-		Host:    host,
 	}
 }
 
@@ -34,13 +32,13 @@ func (uc contestantsUseCase) FetchContestans() ([]model.Contestant, int) {
 
 	var Contestants []model.Contestant
 
-	csvLines, err := uc.CsvUtil.ReadCSV("../api/lmd.csv")
+	csvLines, err := uc.CsvUtil.ReadCSV()
 	if err != nil {
 		fmt.Println(err)
 		return nil, 500
 	}
 
-	info, err := uc.ExtApi.FetchBiosAndScores(uc.Host)
+	info, err := uc.ExtApi.FetchBiosAndScores()
 	if err != nil {
 		return nil, 500
 	}
@@ -76,7 +74,11 @@ func (uc contestantsUseCase) FetchContestans() ([]model.Contestant, int) {
 		Contestants = append(Contestants, contestant)
 	}
 
-	uc.CsvUtil.WriteCSV("../api/output.csv", Contestants)
+	err = uc.CsvUtil.WriteCSV(Contestants)
+	if err != nil {
+		fmt.Println(err)
+		return nil, 500
+	}
 
 	return Contestants, 0
 }

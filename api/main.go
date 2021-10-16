@@ -23,12 +23,15 @@ func main() {
 
 	fmt.Println("Server:", conf.Server.Address+"/api")
 
-	csvu := utils.CreateCsvUtil()
-	ac := extapi.CreateApiClient()
+	csvu := utils.CreateCsvUtil(conf.CSV.Input, conf.CSV.Output)
 
-	uc := usecase.CreateUseCase(ac, csvu, conf.API.Host)
+	httpc := http.Client{}
+	ac := extapi.CreateApiClient(conf.API.Host, &httpc)
+
+	uc := usecase.CreateUseCase(ac, csvu)
 	c := controller.CreateControllers(uc)
 	r := router.NewRouter(c)
+
 	log.Fatal(http.ListenAndServe(conf.Server.Address, r))
 
 }

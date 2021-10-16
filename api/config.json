@@ -1,5 +1,12 @@
 {
     "server": {
-        "address": "localhost:8080"
+        "address": ""
+    },
+    "api": {
+        "host": ""
+    },
+    "csv": {
+        "in": "",
+        "out": ""
     }
 }

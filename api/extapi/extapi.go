@@ -4,50 +4,32 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"reflect"
 	"strconv"
-	"strings"
 
 	"github.com/emamex98/academy-go-q32021/model"
 )
 
-type extapi struct{}
-
-func CreateApiClient() extapi {
-	return extapi{}
+type extapi struct {
+	Host       string
+	HttpClient httpClient
 }
 
-func FetchInfo(idParam int) string {
-
-	id := strconv.Itoa(idParam)
-
-	resp, err := http.Get("https://rupaulsdragrace.fandom.com/api.php/?action=query&prop=extracts&exlimit=1&explaintext=true&pageids=" + id + "&format=json")
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	plainBody := string(body)
-	object := strings.Split(plainBody, "{")[4]
-	extract := strings.Split(object, "\"extract\":")[1]
-	bio := strings.Split(extract, "==")[0]
-	trimmedBio := strings.Replace(
-		strings.Replace(
-			strings.Replace(bio, "\"", "", -1), "\\n", "", -1), ",", "", -1)
-
-	return trimmedBio
-
+type httpClient interface {
+	Get(url string) (resp *http.Response, err error)
 }
 
-func (e extapi) FetchBiosAndScores(host string) (map[int]model.ContestantInfo, error) {
+func CreateApiClient(host string, http httpClient) extapi {
+	return extapi{
+		Host:       host,
+		HttpClient: http,
+	}
+}
 
-	resp, err := http.Get(host)
+func (e extapi) FetchBiosAndScores() (map[int]model.ContestantInfo, error) {
+
+	resp, err := e.HttpClient.Get(e.Host)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -101,5 +83,4 @@ func (e extapi) FetchBiosAndScores(host string) (map[int]model.ContestantInfo, e
 	}
 
 	return ContestantsInfo, nil
-
 }

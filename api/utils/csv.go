@@ -10,15 +10,21 @@ import (
 	"github.com/emamex98/academy-go-q32021/model"
 )
 
-type contestantsUseCase struct{}
-
-func CreateCsvUtil() contestantsUseCase {
-	return contestantsUseCase{}
+type contestantsUseCase struct {
+	InputPath  string
+	OutputPath string
 }
 
-func (c contestantsUseCase) ReadCSV(path string) ([][]string, error) {
+func CreateCsvUtil(inpath string, outpath string) contestantsUseCase {
+	return contestantsUseCase{
+		InputPath:  inpath,
+		OutputPath: outpath,
+	}
+}
 
-	csvf, err := os.Open(path)
+func (c contestantsUseCase) ReadCSV() ([][]string, error) {
+
+	csvf, err := os.Open(c.InputPath)
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
@@ -34,14 +40,14 @@ func (c contestantsUseCase) ReadCSV(path string) ([][]string, error) {
 	return csvLines, nil
 }
 
-func (c contestantsUseCase) WriteCSV(path string, records []model.Contestant) error {
+func (c contestantsUseCase) WriteCSV(records []model.Contestant) error {
 
-	file, err := os.Create(path)
-	defer file.Close()
+	file, err := os.Create(c.OutputPath)
 	if err != nil {
 		fmt.Println(err)
 		return err
 	}
+	defer file.Close()
 
 	w := csv.NewWriter(file)
 	defer w.Flush()
@@ -70,5 +76,4 @@ func (c contestantsUseCase) WriteCSV(path string, records []model.Contestant) er
 	}
 
 	return nil
-
 }
