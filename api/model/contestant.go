@@ -7,4 +7,10 @@ type Contestant struct {
 	Age          int    `json:"Age"`
 	CurrentCity  string `json:"Current City"`
 	CurrentScore int    `json:"Score"`
+	Bio          string `json:"Bio"`
+}
+
+type ContestantInfo struct {
+	Bio   string
+	Score int
 }

@@ -7,7 +7,7 @@ import (
 	"github.com/unrolled/render"
 )
 
-func HelloWorld(w http.ResponseWriter, r *http.Request) {
+func (c controllers) HelloWorld(w http.ResponseWriter, r *http.Request) {
 	var resp = render.New()
 
 	fmt.Println("Endpoint reached: helloWorld")
