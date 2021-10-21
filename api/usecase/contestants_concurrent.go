@@ -4,7 +4,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"math"
 	"strconv"
+	"sync"
 
 	"github.com/emamex98/academy-go-q32021/model"
 )
@@ -23,9 +25,22 @@ func CreateConcurrentUseCase(csvu csvCncUtil) contestantsConcurrentUseCase {
 	}
 }
 
-func worker(workerId int, jobs <-chan []string, res chan<- model.Contestant) {
-	fmt.Println(workerId, jobs, res)
-	for line := range jobs {
+func worker(workerId int, maxJobs int, jobs <-chan []string, res chan<- model.Contestant) {
+
+	fmt.Println("Worker", workerId, "started.")
+	jobsDone := 0
+
+	for {
+
+		if jobsDone == maxJobs {
+			break
+		}
+
+		line, ok := <-jobs
+
+		if !ok {
+			break
+		}
 
 		id, err := strconv.Atoi(line[0])
 		if err != nil {
@@ -54,22 +69,24 @@ func worker(workerId int, jobs <-chan []string, res chan<- model.Contestant) {
 			CurrentScore: score,
 			Bio:          line[6],
 		}
+
 		res <- contestant
+		jobsDone++
 	}
+
+	fmt.Println("Worker", workerId, "finished, processed", jobsDone, "jobs in total.")
 }
 
 func (uc contestantsConcurrentUseCase) FetchContestansConcurrently(class string, max int, ixw int) ([]model.Contestant, int) {
 
-	jobs := make(chan []string)
-	res := make(chan model.Contestant)
+	var Contestants []model.Contestant
 
-	noWorkers := 1
+	linesChan := make(chan []string, max)
+	respChan := make(chan model.Contestant, max)
+
+	totalWorkers := 1
 	if max >= ixw {
-		noWorkers = int(max / ixw)
-	}
-
-	for i := 1; i <= noWorkers; i++ {
-		go worker(i, jobs, res)
+		totalWorkers = int(math.Ceil(float64(max) / float64(ixw)))
 	}
 
 	csvReader, err := uc.CsvUtil.CreateCsvReader()
@@ -78,14 +95,12 @@ func (uc contestantsConcurrentUseCase) FetchContestansConcurrently(class string,
 		return nil, 500
 	}
 
-	var Contestants []model.Contestant
 	i := 0
-
 	for {
 
 		line, err := csvReader.Read()
 		if err == io.EOF || i == max {
-			close(jobs)
+			close(linesChan)
 			break
 		}
 
@@ -102,22 +117,36 @@ func (uc contestantsConcurrentUseCase) FetchContestansConcurrently(class string,
 		switch class {
 		case "even":
 			if id%2 == 0 {
-				jobs <- line
-				con := <-res
-				Contestants = append(Contestants, con)
+				linesChan <- line
 				i++
 			}
 		case "odd":
 			if id%2 != 0 {
-				jobs <- line
-				con := <-res
-				Contestants = append(Contestants, con)
+				linesChan <- line
 				i++
 			}
 		default:
 			return nil, 400
 		}
 
+	}
+
+	var wg sync.WaitGroup
+
+	for i := 1; i <= totalWorkers; i++ {
+		wg.Add(1)
+		i := i
+		go func() {
+			defer wg.Done()
+			worker(i, ixw, linesChan, respChan)
+		}()
+	}
+
+	wg.Wait()
+	close(respChan)
+
+	for item := range respChan {
+		Contestants = append(Contestants, item)
 	}
 
 	return Contestants, 0

@@ -49,19 +49,6 @@ func genetareSampleListResponse() []model.Contestant {
 	return mockList
 }
 
-func genetareSampleSingleResponse() model.Contestant {
-	resp := model.Contestant{
-		ID:           100,
-		Contestant:   "Guadalupe Fierce",
-		RealName:     "Emanuel Estrada",
-		Age:          23,
-		CurrentCity:  "Guadalajara",
-		CurrentScore: 1000,
-		Bio:          "Guadalupe Fierce is an imaginary drag queen.",
-	}
-	return resp
-}
-
 type mockListResponses struct {
 	list    []model.Contestant
 	errCode int
