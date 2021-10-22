@@ -11,6 +11,7 @@ type cont interface {
 	HelloWorld(w http.ResponseWriter, r *http.Request)
 	GetContestans(w http.ResponseWriter, r *http.Request)
 	GetSingleContestant(w http.ResponseWriter, r *http.Request)
+	GetContestansConcurrently(w http.ResponseWriter, r *http.Request)
 }
 
 var Resp = render.New()
@@ -22,6 +23,7 @@ func NewRouter(c cont) *mux.Router {
 
 	router.HandleFunc("/", c.HelloWorld)
 	router.HandleFunc("/contestants", c.GetContestans)
+	router.HandleFunc("/contestants_concurrent", c.GetContestansConcurrently)
 	router.HandleFunc("/contestants/{id}", c.GetSingleContestant)
 
 	return router

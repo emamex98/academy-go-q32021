@@ -29,7 +29,9 @@ func main() {
 	ac := extapi.CreateApiClient(conf.API.Host, &httpc)
 
 	uc := usecase.CreateUseCase(ac, csvu)
-	c := controller.CreateControllers(uc)
+	cuc := usecase.CreateConcurrentUseCase(csvu)
+
+	c := controller.CreateControllers(uc, cuc)
 	r := router.NewRouter(c)
 
 	log.Fatal(http.ListenAndServe(conf.Server.Address, r))
